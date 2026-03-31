@@ -1,4 +1,3 @@
-// index.js - Backend SAAS con init DB
 const fs = require("fs");
 const express = require("express");
 const cors = require("cors");
@@ -10,7 +9,18 @@ const clientsRoutes = require("./routes/clients");
 const ordersRoutes = require("./routes/orders");
 
 const app = express();
-app.use(cors());
+
+// ==========================
+// CORS configurado para frontend
+// ==========================
+app.use(cors({
+  origin: [
+    "http://localhost:5173", // Vite dev
+    "https://saas-frontend-ko42yzm0w-yanotois-projects.vercel.app" // tu deploy en Vercel
+  ],
+  credentials: true
+}));
+
 app.use(express.json());
 
 // ==========================

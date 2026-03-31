@@ -14,6 +14,10 @@ router.post("/register", async (req, res) => {
   if (!email || !password) return res.status(400).send("Email y password requeridos");
 
   try {
+    // Verificar si usuario ya existe
+    const exists = await pool.query("SELECT * FROM users WHERE email=$1", [email]);
+    if (exists.rows.length > 0) return res.status(400).send("Usuario ya existe");
+
     // Hashear contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -30,7 +34,7 @@ router.post("/register", async (req, res) => {
     res.json({ ...user, token });
   } catch (err) {
     console.error(err);
-    res.status(400).send("Usuario ya existe o error en registro");
+    res.status(500).send("Error en registro");
   }
 });
 
