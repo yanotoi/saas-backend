@@ -8,17 +8,24 @@ app.use(express.json());
 
 // 🔌 conexión a DB
 const pool = new Pool({
-  user: "postgres",
-  host: "localhost",
-  database: "saas_db",
-  password: "rivadavia409",
-  port: 5432,
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
 });
 
 // test
 app.get("/", (req, res) => {
   res.send("API funcionando 🚀");
 });
+
+const fs = require("fs");
+
+const initDB = async () => {
+  const sql = fs.readFileSync("init.sql").toString();
+  await pool.query(sql);
+  console.log("Tablas creadas 🚀");
+};
+
+initDB();
 
 // =====================
 // 📦 PRODUCTOS
