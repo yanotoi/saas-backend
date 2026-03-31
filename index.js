@@ -1,3 +1,4 @@
+// index.js
 const fs = require("fs");
 const express = require("express");
 const cors = require("cors");
@@ -10,9 +11,13 @@ const ordersRoutes = require("./routes/orders");
 
 const app = express();
 
+// ==========================
+// CORS configurado para frontend
+// ==========================
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://saas-frontend-ko42yzm0w-yanotois-projects.vercel.app"
+  "https://saas-frontend-ko42yzm0w-yanotois-projects.vercel.app",
+  "https://saas-frontend-tau-lilac.vercel.app" // <- nueva URL agregada
 ];
 
 app.use(cors({
@@ -26,9 +31,22 @@ app.use(cors({
   credentials: true,
 }));
 
+// ==========================
+// Permitir preflight para todas las rutas
+// ==========================
+app.options("*", cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
+
+// ==========================
+// Parse JSON
+// ==========================
 app.use(express.json());
 
-// Ejecutar init.sql
+// ==========================
+// Ejecutar INIT SQL
+// ==========================
 const initDB = async () => {
   try {
     const sql = fs.readFileSync("init.sql").toString();
@@ -40,11 +58,16 @@ const initDB = async () => {
 };
 initDB();
 
-// Rutas
+// ==========================
+// RUTAS
+// ==========================
 app.use("/auth", authRoutes);
 app.use("/products", productsRoutes);
 app.use("/clients", clientsRoutes);
 app.use("/orders", ordersRoutes);
 
+// ==========================
+// SERVIDOR
+// ==========================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor 🚀 en puerto ${PORT}`));
