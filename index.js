@@ -30,9 +30,11 @@ app.use(cors({
   credentials: true,
 }));
 
-// Permitir preflight requests
-app.options("*", cors());
+// Ya no hace falta app.options("*", cors());
 
+// ==========================
+// PARSE JSON
+// ==========================
 app.use(express.json());
 
 // ==========================
