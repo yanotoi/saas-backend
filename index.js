@@ -2,7 +2,8 @@
 const fs = require("fs");
 const express = require("express");
 const cors = require("cors");
-const pool = require("./db"); // tu archivo db.js
+const pool = require("./db");
+
 const authRoutes = require("./routes/auth");
 const productsRoutes = require("./routes/products");
 const clientsRoutes = require("./routes/clients");
