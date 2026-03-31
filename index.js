@@ -12,23 +12,35 @@ const ordersRoutes = require("./routes/orders");
 const app = express();
 
 // ==========================
-// CORS configurado para frontend
+// URLs permitidas
 // ==========================
 const allowedOrigins = [
   "http://localhost:5173",
   "https://saas-frontend-ko42yzm0w-yanotois-projects.vercel.app",
-  "https://saas-frontend-tau-lilac.vercel.app" // nueva URL agregada
+  "https://saas-frontend-tau-lilac.vercel.app"
 ];
+
+// ==========================
+// CORS con logging
+// ==========================
+app.use((req, res, next) => {
+  console.log(`[CORS] Request desde: ${req.headers.origin} a ${req.method} ${req.path}`);
+  next();
+});
 
 app.use(cors({
   origin: function(origin, callback) {
+    console.log(`[CORS check] Origin: ${origin}`);
     if (!origin) return callback(null, true); // para Postman o scripts
-    if (allowedOrigins.indexOf(origin) === -1) {
+    if (!allowedOrigins.includes(origin)) {
+      console.warn(`[CORS DENIED] ${origin}`);
       return callback(new Error(`CORS para ${origin} no permitido`), false);
     }
     return callback(null, true);
   },
-  credentials: true,
+  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"],
+  credentials: true
 }));
 
 // ==========================
@@ -39,7 +51,7 @@ app.use(express.json());
 // ==========================
 // Ejecutar INIT SQL
 // ==========================
-const initDB = async () => {
+(async () => {
   try {
     const sql = fs.readFileSync("init.sql").toString();
     await pool.query(sql);
@@ -47,11 +59,10 @@ const initDB = async () => {
   } catch (err) {
     console.error("Error creando tablas:", err.message);
   }
-};
-initDB();
+})();
 
 // ==========================
-// RUTAS
+// Rutas
 // ==========================
 app.use("/auth", authRoutes);
 app.use("/products", productsRoutes);
@@ -59,7 +70,7 @@ app.use("/clients", clientsRoutes);
 app.use("/orders", ordersRoutes);
 
 // ==========================
-// SERVIDOR
+// Servidor
 // ==========================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor 🚀 en puerto ${PORT}`));
