@@ -23,6 +23,7 @@ const allowedOrigins = [
 // ==========================
 // CORS con logging
 // ==========================
+// index.js
 app.use((req, res, next) => {
   console.log(`[CORS] Request desde: ${req.headers.origin} a ${req.method} ${req.path}`);
   next();
@@ -31,16 +32,14 @@ app.use((req, res, next) => {
 app.use(cors({
   origin: function(origin, callback) {
     console.log(`[CORS check] Origin: ${origin}`);
-    if (!origin) return callback(null, true); // para Postman o scripts
-    if (!allowedOrigins.includes(origin)) {
-      console.warn(`[CORS DENIED] ${origin}`);
+    if (!origin) return callback(null, true); // Postman o scripts
+    if (allowedOrigins.indexOf(origin) === -1) {
+      console.log(`[CORS] ORIGIN NO PERMITIDO: ${origin}`);
       return callback(new Error(`CORS para ${origin} no permitido`), false);
     }
     return callback(null, true);
   },
-  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
-  allowedHeaders: ["Content-Type","Authorization"],
-  credentials: true
+  credentials: true,
 }));
 
 // ==========================
