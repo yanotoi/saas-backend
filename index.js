@@ -17,7 +17,7 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173", // Dev
   "https://saas-frontend-ko42yzm0w-yanotois-projects.vercel.app", // Vercel 1
-  "https://saas-frontend-tau-lilac.vercel.app" // Vercel 2
+  "https://saas-frontend-tau-lilac.vercel.app", // Vercel 2
 ];
 
 const corsOptions = {
@@ -34,32 +34,21 @@ const corsOptions = {
   credentials: true,
 };
 
-// Aplicar CORS a todas las rutas
+// Middleware CORS + preflight
 app.use(cors(corsOptions));
-
-// ==========================
-// Permitir preflight (OPTIONS) para todas las rutas
-// ==========================
-app.options("*", cors(corsOptions));
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type,Authorization");
+    return res.sendStatus(204);
+  }
+  next();
+});
 
 // ==========================
 // Parse JSON
 // ==========================
 app.use(express.json());
-
-// ==========================
-// Ejecutar INIT SQL
-// ==========================
-const initDB = async () => {
-  try {
-    const sql = fs.readFileSync("init.sql").toString();
-    await pool.query(sql);
-    console.log("Tablas creadas 🚀");
-  } catch (err) {
-    console.error("Error creando tablas:", err.message);
-  }
-};
-initDB();
 
 // ==========================
 // RUTAS
@@ -70,7 +59,23 @@ app.use("/clients", clientsRoutes);
 app.use("/orders", ordersRoutes);
 
 // ==========================
-// SERVIDOR
+// Inicializar DB y luego levantar servidor
 // ==========================
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`Servidor 🚀 en puerto ${PORT}`));
+const startServer = async () => {
+  try {
+    const sql = fs.readFileSync("init.sql").toString();
+    await pool.query(sql);
+    console.log("✅ Tablas creadas / verificadas");
+
+    const PORT = process.env.PORT || 8080;
+    app.listen(PORT, () => {
+      console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+      console.log("✅ Base de datos conectada");
+    });
+  } catch (err) {
+    console.error("❌ Error inicializando DB:", err.message);
+    process.exit(1); // salir si falla DB
+  }
+};
+
+startServer();
