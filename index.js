@@ -17,7 +17,7 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "https://saas-frontend-ko42yzm0w-yanotois-projects.vercel.app",
-  "https://saas-frontend-tau-lilac.vercel.app" // <- nueva URL agregada
+  "https://saas-frontend-tau-lilac.vercel.app" // nueva URL agregada
 ];
 
 app.use(cors({
@@ -29,14 +29,6 @@ app.use(cors({
     return callback(null, true);
   },
   credentials: true,
-}));
-
-// ==========================
-// Permitir preflight para todas las rutas
-// ==========================
-app.options("*", cors({
-  origin: allowedOrigins,
-  credentials: true
 }));
 
 // ==========================
