@@ -13,13 +13,25 @@ const app = express();
 // ==========================
 // CORS configurado para frontend
 // ==========================
+const allowedOrigins = [
+  "http://localhost:5173", // Vite dev
+  "https://saas-frontend-ko42yzm0w-yanotois-projects.vercel.app" // deploy en Vercel
+];
+
 app.use(cors({
-  origin: [
-    "http://localhost:5173", // Vite dev
-    "https://saas-frontend-ko42yzm0w-yanotois-projects.vercel.app" // tu deploy en Vercel
-  ],
-  credentials: true
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true); // para Postman o scripts
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = `El CORS para ${origin} no está permitido.`;
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
 }));
+
+// Permitir preflight requests
+app.options("*", cors());
 
 app.use(express.json());
 
