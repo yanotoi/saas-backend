@@ -1,7 +1,6 @@
 // index.js
 const fs = require("fs");
 const express = require("express");
-const cors = require("cors");
 const pool = require("./db");
 
 const authRoutes = require("./routes/auth");
@@ -12,43 +11,40 @@ const ordersRoutes = require("./routes/orders");
 const app = express();
 
 // ==========================
-// CORS configurado para frontend
+// 🔥 CORS MANUAL (FIX DEFINITIVO)
 // ==========================
-const allowedOrigins = [
-  "http://localhost:5173", // Dev
-  "https://saas-frontend-ko42yzm0w-yanotois-projects.vercel.app", // Vercel 1
-  "https://saas-frontend-tau-lilac.vercel.app", // Vercel 2
-];
-
-const corsOptions = {
-  origin: function (origin, callback) {
-    console.log("[CORS] Request desde:", origin || "No origin (Postman/Script)");
-    if (!origin) return callback(null, true); // Postman o scripts
-    if (allowedOrigins.indexOf(origin) === -1) {
-      console.log("[CORS] Origin NO permitido:", origin);
-      return callback(new Error(`CORS para ${origin} no permitido`), false);
-    }
-    console.log("[CORS] Origin permitido:", origin);
-    return callback(null, true);
-  },
-  credentials: true,
-};
-
-// Middleware CORS + preflight
-app.use(cors(corsOptions));
 app.use((req, res, next) => {
-  if (req.method === "OPTIONS") {
-    res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
-    res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    res.header("Access-Control-Allow-Credentials", "true");
-    return res.sendStatus(200); // 🔥 clave
+  const allowedOrigins = [
+    "http://localhost:5173",
+    "https://saas-frontend-ko42yzm0w-yanotois-projects.vercel.app",
+    "https://saas-frontend-tau-lilac.vercel.app",
+  ];
+
+  const origin = req.headers.origin;
+
+  console.log("🌐 Origin:", origin);
+
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
   }
+
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization"
+  );
+
+  // 🔥 RESPUESTA AL PREFLIGHT (CLAVE)
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
   next();
 });
 
 // ==========================
-// Parse JSON
+// JSON
 // ==========================
 app.use(express.json());
 
@@ -61,7 +57,7 @@ app.use("/clients", clientsRoutes);
 app.use("/orders", ordersRoutes);
 
 // ==========================
-// Inicializar DB y luego levantar servidor
+// INIT DB + START SERVER
 // ==========================
 const startServer = async () => {
   try {
@@ -76,7 +72,7 @@ const startServer = async () => {
     });
   } catch (err) {
     console.error("❌ Error inicializando DB:", err.message);
-    process.exit(1); // salir si falla DB
+    process.exit(1);
   }
 };
 
