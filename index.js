@@ -14,29 +14,14 @@ const app = express();
 // 🔥 CORS MANUAL (FIX DEFINITIVO)
 // ==========================
 app.use((req, res, next) => {
-  const allowedOrigins = [
-    "http://localhost:5173",
-    "https://saas-frontend-ko42yzm0w-yanotois-projects.vercel.app",
-    "https://saas-frontend-tau-lilac.vercel.app",
-  ];
+  console.log("🔥 REQUEST:", req.method, req.url);
 
-  const origin = req.headers.origin;
-
-  console.log("🌐 Origin:", origin);
-
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-  }
-
-  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization"
-  );
+  res.setHeader("Access-Control-Allow-Headers", "*");
 
-  // 🔥 RESPUESTA AL PREFLIGHT (CLAVE)
   if (req.method === "OPTIONS") {
+    console.log("✅ PREFLIGHT RESPONDIDO");
     return res.status(200).end();
   }
 
