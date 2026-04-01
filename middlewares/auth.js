@@ -5,7 +5,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
 function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader) return res.status(401).send("Token requerido");
+  if (!authHeader) return res.status(401).json({ error: "Token requerido" });
 
   const token = authHeader.split(" ")[1]; // Bearer <token>
 
@@ -14,7 +14,7 @@ function authMiddleware(req, res, next) {
     req.user = decoded; // agregamos info del usuario al request
     next();
   } catch (err) {
-    return res.status(401).send("Token inválido");
+    return res.status(401).json({ error: "Token inválido" });
   }
 }
 

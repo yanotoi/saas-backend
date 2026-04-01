@@ -1,4 +1,3 @@
-// index.js
 const fs = require("fs");
 const express = require("express");
 const pool = require("./db");
@@ -10,42 +9,27 @@ const ordersRoutes = require("./routes/orders");
 
 const app = express();
 
-// ==========================
-// CORS SIMPLE (YA FUNCIONA)
-// ==========================
+// CORS
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "*");
-
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
-
+  if (req.method === "OPTIONS") return res.sendStatus(200);
   next();
 });
 
-// ==========================
 app.use(express.json());
 
-// ==========================
 // TEST
-// ==========================
-app.get("/", (req, res) => {
-  res.send("API OK 🚀");
-});
+app.get("/", (req, res) => res.send("API OK 🚀"));
 
-// ==========================
 // RUTAS
-// ==========================
 app.use("/auth", authRoutes);
 app.use("/products", productsRoutes);
 app.use("/clients", clientsRoutes);
 app.use("/orders", ordersRoutes);
 
-// ==========================
-// DB INIT (NO ROMPE)
-// ==========================
+// DB INIT
 const initDB = async () => {
   try {
     const sql = fs.readFileSync("init.sql").toString();
@@ -56,14 +40,10 @@ const initDB = async () => {
   }
 };
 
-// ==========================
 const startServer = async () => {
   await initDB();
-
   const PORT = process.env.PORT || 8080;
-  app.listen(PORT, () => {
-    console.log(`🚀 Servidor en puerto ${PORT}`);
-  });
+  app.listen(PORT, () => console.log(`🚀 Servidor en puerto ${PORT}`));
 };
 
 startServer();
