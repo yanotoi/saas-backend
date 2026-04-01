@@ -11,7 +11,7 @@ const ordersRoutes = require("./routes/orders");
 const app = express();
 
 // ==========================
-// 🔥 CORS MANUAL (FIX DEFINITIVO)
+// 🔥 CORS MANUAL (ROBUSTO)
 // ==========================
 app.use((req, res, next) => {
   console.log("🔥 REQUEST:", req.method, req.url);
@@ -34,6 +34,13 @@ app.use((req, res, next) => {
 app.use(express.json());
 
 // ==========================
+// 🔥 RUTA TEST (CLAVE)
+// ==========================
+app.get("/", (req, res) => {
+  res.send("API OK 🚀");
+});
+
+// ==========================
 // RUTAS
 // ==========================
 app.use("/auth", authRoutes);
@@ -42,21 +49,32 @@ app.use("/clients", clientsRoutes);
 app.use("/orders", ordersRoutes);
 
 // ==========================
-// INIT DB + START SERVER
+// INIT DB (SEGURO)
 // ==========================
-const startServer = async () => {
+const initDB = async () => {
   try {
     const sql = fs.readFileSync("init.sql").toString();
     await pool.query(sql);
     console.log("✅ Tablas creadas / verificadas");
+  } catch (err) {
+    console.error("⚠️ Error en init.sql (no bloquea):", err.message);
+  }
+};
+
+// ==========================
+// START SERVER
+// ==========================
+const startServer = async () => {
+  try {
+    await initDB(); // 👈 ya no rompe el server
 
     const PORT = process.env.PORT || 8080;
     app.listen(PORT, () => {
       console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-      console.log("✅ Base de datos conectada");
+      console.log("✅ Backend listo");
     });
   } catch (err) {
-    console.error("❌ Error inicializando DB:", err.message);
+    console.error("❌ Error general:", err.message);
     process.exit(1);
   }
 };
