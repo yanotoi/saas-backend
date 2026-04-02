@@ -67,7 +67,7 @@ router.post("/", auth, async (req, res) => {
 });
 
 // ==========================
-// OBTENER PEDIDOS (FILTROS PRO)
+// OBTENER PEDIDOS
 // ==========================
 router.get("/", auth, async (req, res) => {
   try {
@@ -129,15 +129,15 @@ router.get("/", auth, async (req, res) => {
 });
 
 // ==========================
-// CAJA DIARIA 💰
+// STATS (CAJA DIARIA)
 // ==========================
 router.get("/stats", auth, async (req, res) => {
   try {
     const result = await pool.query(
       `
       SELECT 
-        COUNT(*) as total_orders,
-        SUM(total) as total_sales
+        COALESCE(SUM(total),0) as total_sales,
+        COUNT(*) as total_orders
       FROM orders
       WHERE user_id = $1
       AND status = 'delivered'
@@ -147,13 +147,49 @@ router.get("/stats", auth, async (req, res) => {
     );
 
     res.json({
-      total_orders: Number(result.rows[0].total_orders || 0),
-      total_sales: Number(result.rows[0].total_sales || 0)
+      total_sales: Number(result.rows[0].total_sales),
+      total_orders: Number(result.rows[0].total_orders)
     });
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Error en stats" });
+    res.status(500).json({ error: "Error stats" });
+  }
+});
+
+// ==========================
+// 💰 CERRAR CAJA
+// ==========================
+router.post("/close-cash", auth, async (req, res) => {
+  try {
+    const stats = await pool.query(
+      `
+      SELECT 
+        COALESCE(SUM(total),0) as total_sales,
+        COUNT(*) as total_orders
+      FROM orders
+      WHERE user_id = $1
+      AND status = 'delivered'
+      AND DATE(created_at) = CURRENT_DATE
+      `,
+      [req.user.id]
+    );
+
+    const { total_sales, total_orders } = stats.rows[0];
+
+    await pool.query(
+      `
+      INSERT INTO cash_closures (user_id, total_sales, total_orders)
+      VALUES ($1,$2,$3)
+      `,
+      [req.user.id, total_sales, total_orders]
+    );
+
+    res.json({ message: "Caja cerrada correctamente" });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al cerrar caja" });
   }
 });
 
