@@ -20,7 +20,6 @@ router.post("/", auth, async (req, res) => {
 
     await client.query("BEGIN");
 
-    // Buscar o crear cliente
     let customer = await client.query(
       "SELECT * FROM clients WHERE name=$1 AND user_id=$2",
       [client_name, req.user.id]
@@ -35,13 +34,11 @@ router.post("/", auth, async (req, res) => {
 
     const clientId = customer.rows[0].id;
 
-    // Calcular total
     const total = items.reduce(
       (sum, item) => sum + Number(item.price) * Number(item.quantity),
       0
     );
 
-    // Crear pedido
     const orderResult = await client.query(
       "INSERT INTO orders (client_id, total, user_id) VALUES ($1,$2,$3) RETURNING *",
       [clientId, total, req.user.id]
@@ -49,7 +46,6 @@ router.post("/", auth, async (req, res) => {
 
     const order = orderResult.rows[0];
 
-    // Insertar items
     for (let item of items) {
       await client.query(
         "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES ($1,$2,$3,$4)",
@@ -59,10 +55,7 @@ router.post("/", auth, async (req, res) => {
 
     await client.query("COMMIT");
 
-    res.json({
-      ...order,
-      total: Number(order.total)
-    });
+    res.json({ ...order, total: Number(order.total) });
 
   } catch (err) {
     await client.query("ROLLBACK");
@@ -74,10 +67,25 @@ router.post("/", auth, async (req, res) => {
 });
 
 // ==========================
-// OBTENER PEDIDOS (🔥 CON PRODUCTOS)
+// OBTENER PEDIDOS (FILTROS PRO)
 // ==========================
 router.get("/", auth, async (req, res) => {
   try {
+    const { status, date } = req.query;
+
+    let filters = ["o.user_id = $1"];
+    let values = [req.user.id];
+
+    if (status && status !== "all") {
+      values.push(status);
+      filters.push(`o.status = $${values.length}`);
+    }
+
+    if (date) {
+      values.push(date);
+      filters.push(`DATE(o.created_at) = $${values.length}`);
+    }
+
     const result = await pool.query(
       `
       SELECT 
@@ -86,7 +94,6 @@ router.get("/", auth, async (req, res) => {
         o.status,
         c.name as client,
         o.created_at,
-
         COALESCE(
           json_agg(
             json_build_object(
@@ -98,26 +105,22 @@ router.get("/", auth, async (req, res) => {
           ) FILTER (WHERE p.id IS NOT NULL),
           '[]'
         ) as products
-
       FROM orders o
       JOIN clients c ON o.client_id = c.id
       LEFT JOIN order_items oi ON oi.order_id = o.id
       LEFT JOIN products p ON p.id = oi.product_id
-
-      WHERE o.user_id = $1
+      WHERE ${filters.join(" AND ")}
       GROUP BY o.id, c.name
       ORDER BY o.id DESC
       `,
-      [req.user.id]
+      values
     );
 
-    res.json(
-      result.rows.map(o => ({
-        ...o,
-        total: Number(o.total),
-        products: o.products || []
-      }))
-    );
+    res.json(result.rows.map(o => ({
+      ...o,
+      total: Number(o.total),
+      products: o.products || []
+    })));
 
   } catch (err) {
     console.error(err);
@@ -126,7 +129,36 @@ router.get("/", auth, async (req, res) => {
 });
 
 // ==========================
-// ENTREGAR PEDIDO (STOCK)
+// CAJA DIARIA 💰
+// ==========================
+router.get("/stats", auth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `
+      SELECT 
+        COUNT(*) as total_orders,
+        SUM(total) as total_sales
+      FROM orders
+      WHERE user_id = $1
+      AND status = 'delivered'
+      AND DATE(created_at) = CURRENT_DATE
+      `,
+      [req.user.id]
+    );
+
+    res.json({
+      total_orders: Number(result.rows[0].total_orders || 0),
+      total_sales: Number(result.rows[0].total_sales || 0)
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error en stats" });
+  }
+});
+
+// ==========================
+// ENTREGAR PEDIDO
 // ==========================
 router.put("/:id/deliver", auth, async (req, res) => {
   const client = await pool.connect();
@@ -135,19 +167,6 @@ router.put("/:id/deliver", auth, async (req, res) => {
     const orderId = req.params.id;
 
     await client.query("BEGIN");
-
-    const orderCheck = await client.query(
-      "SELECT * FROM orders WHERE id=$1 AND user_id=$2",
-      [orderId, req.user.id]
-    );
-
-    if (orderCheck.rows.length === 0) {
-      return res.status(404).json({ error: "Pedido no encontrado" });
-    }
-
-    if (orderCheck.rows[0].status === "delivered") {
-      return res.status(400).json({ error: "Ya entregado" });
-    }
 
     const items = await client.query(
       "SELECT * FROM order_items WHERE order_id=$1",
@@ -168,12 +187,11 @@ router.put("/:id/deliver", auth, async (req, res) => {
 
     await client.query("COMMIT");
 
-    res.json({ message: "Pedido entregado" });
+    res.json({ message: "OK" });
 
   } catch (err) {
     await client.query("ROLLBACK");
-    console.error(err);
-    res.status(500).json({ error: "Error al entregar pedido" });
+    res.status(500).json({ error: "Error" });
   } finally {
     client.release();
   }
