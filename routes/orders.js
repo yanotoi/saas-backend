@@ -49,6 +49,11 @@ router.post("/", auth, async (req, res) => {
 
     const order = orderResult.rows[0];
 
+// 🔥 FORZAR número real
+order.total = Number(order.total);
+
+res.json(order);
+
     // Insertar items
     for (let item of items) {
       await client.query(
